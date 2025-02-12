@@ -81,10 +81,3 @@ resource "google_project_iam_binding" "storage_admin" {
     "serviceAccount:${google_service_account.bucket_service_account.email}"
   ]
 }
-
-# Define Variables
-variable "project_id" {}
-variable "region" { default = "us-central1" }
-variable "bucket_name" {}
-variable "user_email" {}
-variable "service_account_email" {}
