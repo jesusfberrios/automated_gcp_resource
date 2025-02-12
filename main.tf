@@ -34,9 +34,9 @@ resource "google_kms_key_ring" "bucket_keyring" {
 
 resource "google_kms_crypto_key" "bucket_key" {
   name     = "bucket-key"
-  key_ring = google_kms_key_ring.bucket_keyring.self_link
+  key_ring = google_kms_key_ring.bucket_keyring.id  # ✅ Correct attribute
   rotation_period = "7776000s"  # Key rotation every 90 days
-  depends_on = [google_kms_key_ring.bucket_keyring]  # Ensure the key ring exists
+  depends_on = [google_kms_key_ring.bucket_keyring]  
 }
 
 # ✅ Create Cloud Storage Bucket with KMS Encryption
