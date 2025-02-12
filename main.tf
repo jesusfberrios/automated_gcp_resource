@@ -81,3 +81,10 @@ resource "google_project_iam_binding" "storage_admin" {
     "serviceAccount:${google_service_account.bucket_service_account.email}"
   ]
 }
+
+resource "google_project_service" "iam_api" {
+  project = var.project_id
+  service = "iam.googleapis.com"
+
+  disable_on_destroy = false  # Keep API enabled if Terraform destroys resources
+}
