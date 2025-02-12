@@ -23,3 +23,9 @@ variable "user_email" {
   description = "The user email for IAM roles"
   type        = string
 }
+
+# ✅ Define Google Cloud Storage service account variable
+variable "gcs_service_account" {
+  description = "Google Cloud Storage Service Account"
+  type        = string
+}
