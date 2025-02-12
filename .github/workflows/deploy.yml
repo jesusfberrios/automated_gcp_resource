@@ -1,0 +1,45 @@
+name: Terraform Deployment
+
+on:
+  push:
+    branches:
+      - main  # Runs on push to main branch
+  pull_request:
+    branches:
+      - main  # Runs on pull requests to main
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    name: Terraform Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.0
+
+      - name: Authenticate to GCP
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Initialize Terraform
+        run: terraform init
+
+      - name: Validate Terraform
+        run: terraform validate
+
+      - name: Plan Terraform
+        run: terraform plan -out=tfplan
+
+      - name: Apply Terraform
+        if: github.event_name == 'push'
+        run: terraform apply -auto-approve
