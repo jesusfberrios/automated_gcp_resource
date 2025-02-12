@@ -12,7 +12,34 @@ provider "google" {
   region  = var.region
 }
 
-# Create Cloud Storage Bucket
+# ✅ Ensure IAM & KMS APIs are enabled before Terraform uses them
+resource "google_project_service" "iam_api" {
+  project = var.project_id
+  service = "iam.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "kms_api" {
+  project = var.project_id
+  service = "cloudkms.googleapis.com"
+  disable_on_destroy = false
+}
+
+# ✅ Enable Encryption using Google Cloud KMS
+resource "google_kms_key_ring" "bucket_keyring" {
+  name     = "bucket-keyring"
+  location = var.region
+  depends_on = [google_project_service.kms_api]  # Ensure KMS API is enabled first
+}
+
+resource "google_kms_crypto_key" "bucket_key" {
+  name     = "bucket-key"
+  key_ring = google_kms_key_ring.bucket_keyring.self_link
+  rotation_period = "7776000s"  # Key rotation every 90 days
+  depends_on = [google_kms_key_ring.bucket_keyring]  # Ensure the key ring exists
+}
+
+# ✅ Create Cloud Storage Bucket with KMS Encryption
 resource "google_storage_bucket" "my_bucket" {
   name          = var.bucket_name
   location      = var.region
@@ -26,7 +53,7 @@ resource "google_storage_bucket" "my_bucket" {
   depends_on = [google_kms_crypto_key.bucket_key]
 }
 
-# Assign IAM Role to a user/service account
+# ✅ Assign IAM Role to a user/service account
 resource "google_storage_bucket_iam_binding" "viewer_role" {
   bucket = google_storage_bucket.my_bucket.name
   role   = "roles/storage.objectViewer"
@@ -37,14 +64,15 @@ resource "google_storage_bucket_iam_binding" "viewer_role" {
   ]
 }
 
-# Enable Firewall Rules for Secure Access
-resource "google_compute_network" "vpc_network" {
-  name = "my-vpc"
+# ✅ Use Existing VPC Network Instead of Creating a New One
+data "google_compute_network" "vpc_network" {
+  name    = "my-vpc"
+  project = var.project_id
 }
 
 resource "google_compute_firewall" "allow_https" {
   name    = "allow-https"
-  network = google_compute_network.vpc_network.name
+  network = data.google_compute_network.vpc_network.id  # Use the existing network
 
   allow {
     protocol = "tcp"
@@ -54,25 +82,13 @@ resource "google_compute_firewall" "allow_https" {
   source_ranges = ["0.0.0.0/0"]
 }
 
-# Enable Encryption using Google Cloud KMS
-resource "google_kms_key_ring" "bucket_keyring" {
-  name     = "bucket-keyring"
-  location = var.region
-}
-
-resource "google_kms_crypto_key" "bucket_key" {
-  name     = "bucket-key"
-  key_ring = google_kms_key_ring.bucket_keyring.id
-  rotation_period = "7776000s"  # Key rotation every 90 days
-}
-
-# Create a Service Account for Secure Access
+# ✅ Create a Service Account for Secure Access
 resource "google_service_account" "bucket_service_account" {
   account_id   = "bucket-sa"
   display_name = "Bucket Service Account"
 }
 
-# Grant Storage Admin Role to the Service Account
+# ✅ Grant Storage Admin Role to the Service Account
 resource "google_project_iam_binding" "storage_admin" {
   project = var.project_id
   role    = "roles/storage.admin"
@@ -80,11 +96,4 @@ resource "google_project_iam_binding" "storage_admin" {
   members = [
     "serviceAccount:${google_service_account.bucket_service_account.email}"
   ]
-}
-
-resource "google_project_service" "iam_api" {
-  project = var.project_id
-  service = "iam.googleapis.com"
-
-  disable_on_destroy = false  # Keep API enabled if Terraform destroys resources
 }
