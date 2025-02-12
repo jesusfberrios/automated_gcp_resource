@@ -3,10 +3,10 @@ name: Terraform Deployment
 on:
   push:
     branches:
-      - main  # Runs on push to main branch
+      - main
   pull_request:
     branches:
-      - main  # Runs on pull requests to main
+      - main
 
 permissions:
   contents: read
@@ -15,6 +15,7 @@ jobs:
   terraform:
     name: Terraform Deploy
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # ⏳ Set a max execution time of 15 minutes
 
     steps:
       - name: Checkout Repository
@@ -39,7 +40,9 @@ jobs:
 
       - name: Plan Terraform
         run: terraform plan -out=tfplan
+        timeout-minutes: 5  # ⏳ Limit Terraform Plan step to 10 minutes
 
       - name: Apply Terraform
         if: github.event_name == 'push'
         run: terraform apply -auto-approve
+        timeout-minutes: 5  # ⏳ Limit Terraform Apply step to 10 minutes

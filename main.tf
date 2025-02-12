@@ -18,9 +18,12 @@ resource "google_storage_bucket" "my_bucket" {
   location      = var.region
   storage_class = "STANDARD"
   uniform_bucket_level_access = true  # Enforce uniform IAM policies
+
   encryption {
     default_kms_key_name = google_kms_crypto_key.bucket_key.id
   }
+
+  depends_on = [google_kms_crypto_key.bucket_key]
 }
 
 # Assign IAM Role to a user/service account
@@ -35,16 +38,20 @@ resource "google_storage_bucket_iam_binding" "viewer_role" {
 }
 
 # Enable Firewall Rules for Secure Access
+resource "google_compute_network" "vpc_network" {
+  name = "my-vpc"
+}
+
 resource "google_compute_firewall" "allow_https" {
   name    = "allow-https"
-  network = "default"
+  network = google_compute_network.vpc_network.name
 
   allow {
     protocol = "tcp"
     ports    = ["443"]
   }
 
-  source_ranges = ["0.0.0.0/0"]  # Restrict this to a specific range if needed
+  source_ranges = ["0.0.0.0/0"]
 }
 
 # Enable Encryption using Google Cloud KMS
