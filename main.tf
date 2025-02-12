@@ -12,38 +12,22 @@ provider "google" {
   region  = var.region
 }
 
-# ✅ Ensure IAM & KMS APIs are enabled before Terraform uses them
-resource "google_project_service" "iam_api" {
-  project = var.project_id
-  service = "iam.googleapis.com"
-  disable_on_destroy = false
-}
-
+# ✅ Ensure IAM & KMS APIs are enabled
 resource "google_project_service" "kms_api" {
   project = var.project_id
   service = "cloudkms.googleapis.com"
   disable_on_destroy = false
 }
 
-# ✅ Enable Encryption using Google Cloud KMS
+# ✅ Use existing KMS Key Ring instead of creating a new one
 data "google_kms_key_ring" "bucket_keyring" {
   name     = "bucket-keyring"
   location = var.region
 }
 
-resource "google_kms_crypto_key" "bucket_key" {
+data "google_kms_crypto_key" "bucket_key" {
   name     = "bucket-key"
   key_ring = data.google_kms_key_ring.bucket_keyring.id
-}
-
-# ✅ Grant Cloud Storage access to encrypt & decrypt using the KMS key
-resource "google_kms_crypto_key_iam_binding" "storage_kms_access" {
-  crypto_key_id = google_kms_crypto_key.bucket_key.id
-  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
-
-  members = [
-    "serviceAccount:${var.service_account_email}"
-  ]
 }
 
 # ✅ Create Cloud Storage Bucket with KMS Encryption
@@ -54,52 +38,18 @@ resource "google_storage_bucket" "my_bucket" {
   uniform_bucket_level_access = true  # Enforce uniform IAM policies
 
   encryption {
-    default_kms_key_name = google_kms_crypto_key.bucket_key.id
+    default_kms_key_name = data.google_kms_crypto_key.bucket_key.id
   }
 
-  depends_on = [google_kms_crypto_key.bucket_key]
+  depends_on = [google_project_service.kms_api]
 }
 
-# ✅ Assign IAM Role to a user/service account
-resource "google_storage_bucket_iam_binding" "viewer_role" {
+# ✅ Assign IAM Role to a service account
+resource "google_storage_bucket_iam_binding" "bucket_access" {
   bucket = google_storage_bucket.my_bucket.name
-  role   = "roles/storage.objectViewer"
+  role   = "roles/storage.objectAdmin"
 
   members = [
-    "user:${var.user_email}",
     "serviceAccount:${var.service_account_email}"
-  ]
-}
-
-# ✅ Use Existing VPC Network Instead of Creating a New One
-data "google_compute_network" "vpc_network" {
-  name    = "my-vpc"
-  project = var.project_id
-}
-
-resource "google_compute_firewall" "allow_https" {
-  name    = "allow-https"
-  network = data.google_compute_network.vpc_network.id  # Use the existing network
-
-  allow {
-    protocol = "tcp"
-    ports    = ["443"]
-  }
-
-  source_ranges = ["0.0.0.0/0"]
-}
-
-# ✅ Create a Service Account for Secure Access
-data "google_service_account" "existing_bucket_service_account" {
-  account_id = "bucket-sa"
-}
-
-# ✅ Grant Storage Admin Role to the Service Account
-resource "google_project_iam_binding" "storage_admin" {
-  project = var.project_id
-  role    = "roles/storage.admin"
-
-  members = [
-    "serviceAccount:${data.google_service_account.existing_bucket_service_account.email}"
   ]
 }
