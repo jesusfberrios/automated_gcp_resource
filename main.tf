@@ -31,7 +31,7 @@ data "google_kms_crypto_key" "bucket_key" {
 }
 
 resource "google_kms_crypto_key_iam_binding" "storage_kms_access" {
-  crypto_key_id = google_kms_crypto_key.bucket_key.id
+  crypto_key_id = data.google_kms_crypto_key.bucket_key.id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
 
   members = [
