@@ -47,6 +47,9 @@ jobs:
 
       - name: Plan Terraform
         run: terraform plan -out=tfplan
+      
+      - name: Debug Environment Variables
+        run: env | grep TF_VAR_
 
       - name: Apply Terraform
         if: github.event_name == 'push'
