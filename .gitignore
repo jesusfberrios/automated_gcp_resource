@@ -170,10 +170,17 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-terraform.tfvars
+# Ignore Terraform state files
 *.tfstate
 *.tfstate.*
+
+# Ignore Terraform working directory
 .terraform/
 .terraform.lock.hcl
+
+# Ignore GCP service account credentials
 key.json
+
+# Ignore Terraform variables file (secrets should be set in GitHub Secrets)
+terraform.tfvars
 

@@ -15,7 +15,14 @@ jobs:
   terraform:
     name: Terraform Deploy
     runs-on: ubuntu-latest
-    timeout-minutes: 10  # ⏳ Set a max execution time of 15 minutes
+    timeout-minutes: 15  # ⏳ Set a max execution time of 15 minutes
+
+    env:
+      TF_VAR_project_id: ${{ secrets.TF_VAR_project_id }}
+      TF_VAR_region: ${{ secrets.TF_VAR_region }}
+      TF_VAR_bucket_name: ${{ secrets.TF_VAR_bucket_name }}
+      TF_VAR_service_account_email: ${{ secrets.TF_VAR_service_account_email }}
+      TF_VAR_user_email: ${{ secrets.TF_VAR_user_email }}
 
     steps:
       - name: Checkout Repository
@@ -40,9 +47,7 @@ jobs:
 
       - name: Plan Terraform
         run: terraform plan -out=tfplan
-        timeout-minutes: 5  # ⏳ Limit Terraform Plan step to 10 minutes
 
       - name: Apply Terraform
         if: github.event_name == 'push'
         run: terraform apply -auto-approve
-        timeout-minutes: 5  # ⏳ Limit Terraform Apply step to 10 minutes
