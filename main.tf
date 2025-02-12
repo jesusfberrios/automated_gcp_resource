@@ -26,17 +26,14 @@ resource "google_project_service" "kms_api" {
 }
 
 # ✅ Enable Encryption using Google Cloud KMS
-resource "google_kms_key_ring" "bucket_keyring" {
+data "google_kms_key_ring" "bucket_keyring" {
   name     = "bucket-keyring"
   location = var.region
-  depends_on = [google_project_service.kms_api]  # Ensure KMS API is enabled first
 }
 
 resource "google_kms_crypto_key" "bucket_key" {
   name     = "bucket-key"
-  key_ring = google_kms_key_ring.bucket_keyring.id  # ✅ Correct attribute
-  rotation_period = "7776000s"  # Key rotation every 90 days
-  depends_on = [google_kms_key_ring.bucket_keyring]  
+  key_ring = data.google_kms_key_ring.bucket_keyring.id
 }
 
 # ✅ Grant Cloud Storage access to encrypt & decrypt using the KMS key
@@ -80,22 +77,13 @@ data "google_compute_network" "vpc_network" {
   project = var.project_id
 }
 
-resource "google_compute_firewall" "allow_https" {
-  name    = "allow-https"
-  network = data.google_compute_network.vpc_network.id  # Use the existing network
-
-  allow {
-    protocol = "tcp"
-    ports    = ["443"]
-  }
-
-  source_ranges = ["0.0.0.0/0"]
+data "google_compute_firewall" "existing_https" {
+  name = "allow-https"
 }
 
 # ✅ Create a Service Account for Secure Access
-resource "google_service_account" "bucket_service_account" {
-  account_id   = "bucket-sa"
-  display_name = "Bucket Service Account"
+data "google_service_account" "existing_bucket_service_account" {
+  account_id = "bucket-sa"
 }
 
 # ✅ Grant Storage Admin Role to the Service Account
@@ -104,6 +92,6 @@ resource "google_project_iam_binding" "storage_admin" {
   role    = "roles/storage.admin"
 
   members = [
-    "serviceAccount:${google_service_account.bucket_service_account.email}"
+    "serviceAccount:${data.google_service_account.existing_bucket_service_account.email}"
   ]
 }
