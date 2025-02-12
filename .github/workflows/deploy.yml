@@ -42,6 +42,13 @@ jobs:
       - name: Initialize Terraform
         run: terraform init
 
+      - name: Import Existing Resources
+        run: |
+          terraform import google_kms_key_ring.bucket_keyring projects/${{ secrets.TF_VAR_PROJECT_ID }}/locations/${{ secrets.TF_VAR_REGION }}/keyRings/bucket-keyring || true
+          terraform import google_compute_firewall.allow_https projects/${{ secrets.TF_VAR_PROJECT_ID }}/global/firewalls/allow-https || true
+          terraform import google_service_account.bucket_service_account projects/${{ secrets.TF_VAR_PROJECT_ID }}/serviceAccounts/bucket-sa@${{ secrets.TF_VAR_PROJECT_ID }}.iam.gserviceaccount.com || true
+
+
       - name: Validate Terraform
         run: terraform validate
 
