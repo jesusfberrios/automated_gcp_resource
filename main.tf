@@ -30,6 +30,15 @@ data "google_kms_crypto_key" "bucket_key" {
   key_ring = data.google_kms_key_ring.bucket_keyring.id
 }
 
+resource "google_kms_crypto_key_iam_binding" "storage_kms_access" {
+  crypto_key_id = google_kms_crypto_key.bucket_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+
+  members = [
+    "serviceAccount:${var.gcs_service_account}"
+  ]
+}
+
 # ✅ Create Cloud Storage Bucket with KMS Encryption
 resource "google_storage_bucket" "my_bucket" {
   name          = var.bucket_name

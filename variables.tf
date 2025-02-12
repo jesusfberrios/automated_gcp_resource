@@ -23,3 +23,8 @@ variable "user_email" {
   description = "The user email for IAM roles"
   type        = string
 }
+
+variable "gcs_service_account" {
+  description = "The Cloud Storage service account for encryption"
+  type        = string
+}
